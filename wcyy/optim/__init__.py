@@ -1,1 +1,0 @@
-from wcyy.optim.optim_factory import create_optimizer

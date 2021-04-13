@@ -1,6 +1,6 @@
 authorName: yy
 experimentName: test_on_different_backbone_from_timm
-trialConcurrency: 4
+trialConcurrency: 1
 maxExecDuration: 12h
 # maxTrialNum: 4
 # choice: local, remote, pai

@@ -9,9 +9,10 @@ from torch.utils.data import DataLoader
 import torchvision.transforms as tt
 from tensorboardX import SummaryWriter
 
-from wcyy.data import create_full_dataset
-from wcyy.models import create_model, DeviceDataLoader
-from wcyy.utils.device import to_device, get_default_device
+from tp.data import create_full_dataset, DeviceDataLoader
+from tp.models import create_model
+from tp.utils.device import to_device, get_default_device
+from tp.utils.exp import get_exp_ID
 import config
 
 
@@ -27,7 +28,7 @@ def predict_full(args):
     cfg['device'] = get_default_device()
     # cfg['device'] = torch.device('cpu')
     if cfg.get('exp_id', None) is None:
-        cfg['exp_id'] = f'exp-{args.cfg}'
+        cfg['exp_id'] = get_exp_ID(cfg)
 
     exps_root = 'runs'
     exp_id = cfg['exp_id']
@@ -44,15 +45,13 @@ def predict_full(args):
     train_transform = getattr(config, cfg['train_transform'])
     valid_transform = getattr(config, cfg['valid_transform'])
 
-    classes = getattr(config, cfg['classes'])
-    print(classes)
-    num_classes = len(classes)
-    full_dataset = create_full_dataset(cfg, classes)
+    full_dataset = create_full_dataset(cfg)
     train_ds, valid_ds = torch.utils.data.random_split(
-        full_dataset, [len(full_dataset)-10000, 10000])
+        full_dataset, [len(full_dataset)-1000, 1000])
     train_ds.dataset = copy(full_dataset)
     train_ds.dataset.transform = train_transform
     valid_ds.dataset.transform = valid_transform
+
 
     # test_ds = valid_ds
     train_dl = DeviceDataLoader(
@@ -67,7 +66,7 @@ def predict_full(args):
                    pin_memory=True), cfg['device'])
 
     # show_batch(valid_dl)
-    model = to_device(create_model(cfg, num_classes), cfg['device'])
+    model = to_device(create_model(cfg, 2), cfg['device'])
     model_ckpt = torch.load(os.path.join(writer.logdir, cfg['ckpt']))
     model.load_state_dict(model_ckpt)
 

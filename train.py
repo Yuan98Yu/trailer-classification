@@ -12,11 +12,11 @@ from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
 import numpy as np
 
-from wcyy.data import DeviceDataLoader, create_full_dataset
-from wcyy.utils.device import get_default_device
-from wcyy.utils.exp import get_exp_ID
-from wcyy.models import create_model
-from wcyy.optim import create_optimizer
+from tp.data import DeviceDataLoader, create_full_dataset, log_dateset_info
+from tp.utils.device import get_default_device
+from tp.utils.exp import get_exp_ID
+from tp.models import create_model
+from tp.optim import create_optimizer
 import config
 
 
@@ -53,17 +53,17 @@ def get_lr(optimizer):
         return param_group['lr']
 
 
-def fit_one_cycle(writer,
-                  start_epoch,
-                  epochs,
-                  max_lr,
-                  model,
-                  train_loader,
-                  val_loader,
-                  weight_decay=0,
-                  grad_clip=None,
-                  opt_func=torch.optim.SGD,
-                  accumulation_steps=16):
+def fit(writer,
+        start_epoch,
+        epochs,
+        max_lr,
+        model,
+        train_loader,
+        val_loader,
+        weight_decay=0,
+        grad_clip=None,
+        opt_func=torch.optim.SGD,
+        accumulation_steps=16):
     torch.cuda.empty_cache()
     history = []
 
@@ -123,13 +123,15 @@ def main(writer: SummaryWriter, cfg: Dict):
     valid_transform = getattr(config, cfg['valid_transform'])
 
     full_dataset = create_full_dataset(cfg)
-    print(full_dataset.classes)
     num_classes = len(full_dataset.classes)
-    print(len(full_dataset))
+    log_dateset_info(full_dataset)
+
     # classes = full_dataset.classes
     train_ds, valid_ds = torch.utils.data.random_split(full_dataset,
-                                                       [len(full_dataset)-10000, 10000])
+                                                       [len(full_dataset)-1000, 1000])
     train_ds.dataset = copy(full_dataset)
+    print(f'train_ds size: {len(train_ds)}')
+    print(f'valid_ds size: {len(valid_ds)}')
     train_ds.dataset.transform = train_transform
     valid_ds.dataset.transform = valid_transform
     # test_ds = valid_ds
@@ -166,16 +168,16 @@ def main(writer: SummaryWriter, cfg: Dict):
 
     history = [evaluate(model, valid_dl)]
 
-    history += fit_one_cycle(writer,
-                             start_epoch,
-                             epochs,
-                             max_lr,
-                             model,
-                             train_dl,
-                             valid_dl,
-                             grad_clip=grad_clip,
-                             weight_decay=weight_decay,
-                             opt_func=opt_func)
+    history += fit(writer,
+                   start_epoch,
+                   epochs,
+                   max_lr,
+                   model,
+                   train_dl,
+                   valid_dl,
+                   grad_clip=grad_clip,
+                   weight_decay=weight_decay,
+                   opt_func=opt_func)
 
     # plot accuracy
     # accuracies = [x['val_acc'] for x in history]
